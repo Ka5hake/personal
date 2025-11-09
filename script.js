@@ -187,3 +187,113 @@ if (ctaButton) {
     setTimeout(() => ctaButton.classList.remove('scale-95'), 140);
   });
 }
+
+// Timeline scroll animations
+const timelineItems = Array.from(document.querySelectorAll('[data-timeline-item]'));
+const timelineProgress = document.getElementById('timeline-progress');
+const journeySection = document.getElementById('journey');
+
+if (timelineItems.length > 0 && timelineProgress && journeySection) {
+  // Timeline item observer
+  const timelineObserver = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    },
+    {
+      threshold: 0.2,
+      rootMargin: '-50px 0px'
+    }
+  );
+
+  timelineItems.forEach(item => {
+    timelineObserver.observe(item);
+  });
+
+  // Timeline progress update
+  const updateTimelineProgress = () => {
+    const sectionRect = journeySection.getBoundingClientRect();
+    const sectionTop = sectionRect.top + window.scrollY;
+    const sectionHeight = journeySection.offsetHeight;
+    const viewportHeight = window.innerHeight;
+    const scrollTop = window.scrollY;
+    
+    // Calculate when section enters viewport
+    const sectionStart = sectionTop - viewportHeight;
+    const sectionEnd = sectionTop + sectionHeight;
+    const scrollProgress = scrollTop - sectionStart;
+    const maxScroll = sectionEnd - sectionStart;
+    
+    if (scrollTop >= sectionStart && scrollTop <= sectionEnd) {
+      const progress = Math.min(Math.max((scrollProgress / maxScroll) * 100, 0), 100);
+      timelineProgress.style.height = `${progress}%`;
+    } else if (scrollTop < sectionStart) {
+      timelineProgress.style.height = '0%';
+    } else if (scrollTop > sectionEnd) {
+      timelineProgress.style.height = '100%';
+    }
+  };
+
+  // Throttled scroll handler
+  let timelineTicking = false;
+  const requestTimelineUpdate = () => {
+    if (!timelineTicking) {
+      timelineTicking = true;
+      requestAnimationFrame(() => {
+        updateTimelineProgress();
+        timelineTicking = false;
+      });
+    }
+  };
+
+  window.addEventListener('scroll', requestTimelineUpdate, { passive: true });
+  window.addEventListener('resize', requestTimelineUpdate, { passive: true });
+  
+  // Initial update
+  updateTimelineProgress();
+}
+
+// Skills section animation
+const skillCategories = Array.from(document.querySelectorAll('.skill-category'));
+if (skillCategories.length > 0) {
+  // Store target widths in data attributes
+  skillCategories.forEach(category => {
+    const skillFills = category.querySelectorAll('.skill-item__fill');
+    skillFills.forEach(fill => {
+      const width = fill.style.width || '0%';
+      fill.setAttribute('data-width', width);
+      fill.style.width = '0%';
+    });
+  });
+
+  const skillObserver = new IntersectionObserver(
+    entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const skillFills = entry.target.querySelectorAll('.skill-item__fill');
+          skillFills.forEach((fill, index) => {
+            setTimeout(() => {
+              const targetWidth = fill.getAttribute('data-width') || '0%';
+              fill.classList.add('animate');
+              requestAnimationFrame(() => {
+                fill.style.width = targetWidth;
+              });
+            }, index * 100);
+          });
+          skillObserver.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      threshold: 0.2,
+      rootMargin: '0px 0px -50px 0px'
+    }
+  );
+
+  skillCategories.forEach(category => {
+    skillObserver.observe(category);
+  });
+}
